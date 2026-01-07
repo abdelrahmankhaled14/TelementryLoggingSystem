@@ -1,0 +1,5 @@
+if(EXISTS "/home/abdo/projects/linux/linuxAdmin/Embedded-Linux/cpp/project/build/program[1]_tests.cmake")
+  include("/home/abdo/projects/linux/linuxAdmin/Embedded-Linux/cpp/project/build/program[1]_tests.cmake")
+else()
+  add_test(program_NOT_BUILT program_NOT_BUILT)
+endif()
