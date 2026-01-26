@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/program.dir/test/logmanagertest.cpp.o -o program  libmylib.a /usr/local/lib/libgtest_main.a /usr/local/lib/libgmock_main.a /usr/local/lib/libgmock.a /usr/local/lib/libgtest.a 

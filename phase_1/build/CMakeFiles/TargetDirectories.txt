@@ -1,5 +1,0 @@
-/home/abdo/projects/linux/linuxAdmin/Embedded-Linux/cpp/project/build/CMakeFiles/mylib.dir
-/home/abdo/projects/linux/linuxAdmin/Embedded-Linux/cpp/project/build/CMakeFiles/program.dir
-/home/abdo/projects/linux/linuxAdmin/Embedded-Linux/cpp/project/build/CMakeFiles/test.dir
-/home/abdo/projects/linux/linuxAdmin/Embedded-Linux/cpp/project/build/CMakeFiles/edit_cache.dir
-/home/abdo/projects/linux/linuxAdmin/Embedded-Linux/cpp/project/build/CMakeFiles/rebuild_cache.dir
