@@ -13,36 +13,39 @@ template <typename Policy>
 class LogFormatter
 {
 public:
-    static std::optional<logmessage> formatDataToLogMsg(const std::string &raw)
-    {
-        auto valOpt = parseFloat(raw);
-        if (!valOpt)
-            return std::nullopt;
+static std::optional<logmessage> formatDataToLogMsg(const std::string &raw)
+{
+    auto valOpt = parseFloat(raw);
+    if (!valOpt)
+        return std::nullopt;
 
-        float val = *valOpt;
+    float val = *valOpt;
 
-        if (val < 0)
-            return std::nullopt;
+    if (val < 0)
+        return std::nullopt;
 
-        SeverityLvl_enum sevEnum = Policy::inferSeverity(val);
+    if (val > Policy::maxValue)
+        return std::nullopt;
 
-        std::string severityStr = std::string(magic_enum::enum_name(sevEnum));
-        std::string contextStr  = std::string(magic_enum::enum_name(Policy::context));
+    SeverityLvl_enum sevEnum = Policy::inferSeverity(val);
 
-        std::string description = msgDescription(val);
+    std::string severityStr = std::string(magic_enum::enum_name(sevEnum));
+    std::string contextStr  = std::string(magic_enum::enum_name(Policy::context));
 
-        std::string timestamp = currentTimeStamp();
+    std::string description = msgDescription(val);
+    std::string timestamp = currentTimeStamp();
 
-        logmessage msg(
-            "TelemetryApp",  
-            timestamp,      
-            contextStr,      
-            severityStr,     
-            description      
-        );
+    logmessage msg(
+        "TelemetryApp",
+        timestamp,
+        contextStr,
+        severityStr,
+        description
+    );
 
-        return msg;
-    }
+    return msg;
+}
+
 
 private:
     static std::string msgDescription(float val)

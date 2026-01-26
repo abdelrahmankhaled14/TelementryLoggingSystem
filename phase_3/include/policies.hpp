@@ -4,6 +4,7 @@
 
 struct CpuPolicy
 {
+    static constexpr float maxValue = 100.0f;
     static constexpr float WARNING = 75.0f;
     static constexpr float CRITICAL = 90.0f;
     static constexpr std::string_view unit = "%";
@@ -20,7 +21,8 @@ struct CpuPolicy
 };
 struct RamPolicy
 {
-    static constexpr int WARNING = 8 ;
+    static constexpr float maxValue = 16.0f;
+    static constexpr int WARNING = 8;
     static constexpr float CRITICAL = 12;
     static constexpr std::string_view unit = "GB";
     static constexpr TelemetrySrc_enum context = TelemetrySrc_enum::RAM;

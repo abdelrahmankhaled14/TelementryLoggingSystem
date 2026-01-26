@@ -36,15 +36,6 @@ int main()
         
         if (msgOpt) {
             logManager.log(*msgOpt);
-        } else {
-            logmessage errorMsg(
-                "TelemetryApp",
-                "N/A",
-                "CPU",
-                "ERROR",
-                "Failed to parse telemetry data: " + rawLine
-            );
-            logManager.log(errorMsg);
         }
     }
 

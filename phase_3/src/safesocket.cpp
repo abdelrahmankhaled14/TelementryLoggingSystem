@@ -43,6 +43,7 @@ SafeSocket &SafeSocket::operator=(SafeSocket &&other) noexcept
         other.fd_ = -1;
         return *this;
     }
+    return *this;
 }
 
 bool SafeSocket::Connect()
