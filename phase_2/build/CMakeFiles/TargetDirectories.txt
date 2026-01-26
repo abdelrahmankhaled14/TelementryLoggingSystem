@@ -1,4 +1,0 @@
-/home/abdo/projects/linux/C++/project/TelementryLoggingSystem/phase_2/build/CMakeFiles/mylib.dir
-/home/abdo/projects/linux/C++/project/TelementryLoggingSystem/phase_2/build/CMakeFiles/program.dir
-/home/abdo/projects/linux/C++/project/TelementryLoggingSystem/phase_2/build/CMakeFiles/edit_cache.dir
-/home/abdo/projects/linux/C++/project/TelementryLoggingSystem/phase_2/build/CMakeFiles/rebuild_cache.dir

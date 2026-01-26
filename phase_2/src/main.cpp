@@ -25,14 +25,14 @@
 // }
 
 
-#include "FileTelemetrySourceImpl.hpp"
+#include "SocketTelemetrySourceImpl.hpp"
 #include <iostream>
 
 int main()
 {
     std::string out;
     
-    FileTelemetrySourceImpl cpuSource("/proc/meminfo");
+    SocketTelemetrySourceImpl cpuSource("/tmp/telemetry.sock");
     
    
     ITelemetrySource* source = &cpuSource;  
@@ -52,3 +52,5 @@ int main()
     
     return 0;
 }
+
+

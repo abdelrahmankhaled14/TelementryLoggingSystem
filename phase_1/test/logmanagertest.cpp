@@ -19,7 +19,7 @@ protected:
 
     LogManagerTest()
         : sink(),
-          manager(&sink) // ✅ pointer + initializer list
+          manager(&sink) 
     {
     }
     void SetUp() override

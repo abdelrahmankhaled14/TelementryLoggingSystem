@@ -1,2 +1,0 @@
-/usr/bin/ar qc libmylib.a CMakeFiles/mylib.dir/src/logmessage.cpp.o CMakeFiles/mylib.dir/src/filesink.cpp.o CMakeFiles/mylib.dir/src/consolesink.cpp.o CMakeFiles/mylib.dir/src/logmanager.cpp.o CMakeFiles/mylib.dir/src/FileTelemetrySourceImpl.cpp.o CMakeFiles/mylib.dir/src/safefile.cpp.o
-/usr/bin/ranlib libmylib.a
