@@ -8,7 +8,6 @@
 #include <iostream>
 #include <memory>
 #include <optional>
-
 int main()
 {
     std::unique_ptr<ITelemetrySource> source = 
@@ -33,8 +32,8 @@ int main()
     while (source->ReadSource(rawLine))
     {
         auto msgOpt = LogFormatter<RamPolicy>::formatDataToLogMsg(rawLine);
-        
-        if (msgOpt) {
+        if (msgOpt) 
+        {
             logManager.log(*msgOpt);
         }
     }

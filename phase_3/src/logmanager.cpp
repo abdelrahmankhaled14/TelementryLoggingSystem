@@ -1,5 +1,7 @@
 // logmanager.cpp
 #include "logmanager.hpp"
+#include <iostream>
+#include <unistd.h>
 
 LogManager::LogManager(size_t bufferCapacity)
     : messageBuffer(bufferCapacity)
