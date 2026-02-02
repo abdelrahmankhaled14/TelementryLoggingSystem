@@ -1,389 +1,191 @@
-# Telemetry Logging System (Modern C++ / Policy-Based Design)
+# Telemetry Logging System – Phase 4
 
-## Overview
+**Asynchronous, Multi-Sink, Threaded Logging Framework**
 
-This project implements a **modular telemetry logging system** written in **modern C++ (C++17)**.
- It is designed to demonstrate **core language features**, **type safety**, and **classic design patterns** applied to a realistic systems-level problem.
+## 📌 Overview
 
-The system reads raw telemetry data (e.g. CPU / RAM readings), **infers severity at compile time**, formats structured log messages, buffers them, and finally dispatches them to one or more log sinks.
+This phase implements a **multithreaded telemetry logging system** that reads telemetry data from a file, formats it according to a policy, and logs it asynchronously to multiple sinks (console + files).
 
-### Key Goals
+The design focuses on:
 
-- Zero runtime ambiguity
-- Compile-time correctness where possible
-- Clean separation of responsibilities
-- Easy extensibility without modifying existing code
+- Producer / Consumer separation
+- Thread safety
+- Proper object lifetime management
+- Clean shutdown without deadlocks or undefined behavior
 
-------
+This phase is intentionally **systems-level**, dealing with concurrency, synchronization, and virtual dispatch safety.
 
-## Core C++ Concepts Used
-
-- `enum class` (strongly typed enums)
-- Templates & policy-based design
-- `std::optional` as a type-safe union
-- `constexpr` and `if constexpr`
-- Compile-time configuration
-- Factory & Builder design patterns
-- RAII & move semantics
-- Interface-based design (dependency injection)
-
-------
-
-## High-Level Architecture
+## 🧱 Architecture
 
 ```
-Telemetry Source (File / Future Sources)
+Telemetry Source (File)
         |
         v
-LogFormatter<Policy>
+   Formatter Task
         |
         v
-LogMessage
+ RingBuffer<logmessage>
         |
         v
-LogManager
+   Logger Task
         |
         v
-LogSink(s) (Console / File / Socket)
+  LogManager
+        |
+        v
+ +-------------+
+ | ConsoleSink |
+ | FileSink(s) |
+ +-------------+
 ```
 
-Each layer is **fully decoupled** and replaceable.
+## 🧵 Threading Model
+
+- **ThreadPool**
+  - Fixed number of worker threads
+  - Task queue backed by a ring buffer
+  - Clean shutdown with join semantics
+- **Producer (Formatter Task)**
+  - Reads raw telemetry from `telemetry.txt`
+  - Converts raw data → `logmessage` using a policy
+  - Pushes formatted messages into a shared ring buffer
+- **Consumer (Logger Task)**
+  - Waits on a condition variable
+  - Pops formatted messages
+  - Logs to all registered sinks
+  - Flushes output deterministically
+
+## 🔄 Synchronization Strategy
+
+- `RingBuffer<logmessage>`
+   Used as a bounded queue between producer and consumer.
+- `std::mutex + std::condition_variable`
+  - Producer notifies when new data is available
+  - Consumer blocks when queue is empty
+  - `done` flag signals end-of-stream cleanly
+
+This avoids:
+
+- Busy waiting
+- Data races
+- Lost notifications
 
 ------
 
-## Strongly Typed Enumerations
+## 🧩 Core Components
 
-To avoid implicit conversions and logic errors, the system exclusively uses `enum class`.
+### 1️⃣ Telemetry Source
 
-### Defined Enums
+**`FileTelemetrySourceImpl`**
 
-- `LogSinkType`
-  - `CONSOLE`
-  - `FILE`
-  - `SOCKET`
-- `SeverityLvl`
-  - `CRITICAL`
-  - `WARNING`
-  - `INFO`
-- `TelemetrySrc`
-  - `CPU`
-  - `RAM`
-
-### Why This Matters
-
-- Prevents mixing unrelated values
-- Improves API clarity
-- Enforces correctness at compile time
+- Reads telemetry data line-by-line from a file
+- Acts as a real-world input abstraction
 
 ------
 
-## Telemetry Sources
+### 2️⃣ Formatter
 
-### `ITelemetrySource`
+**`LogFormatter<Policy>`**
 
-An abstract interface representing any telemetry input.
+- Converts raw telemetry into structured `logmessage`
 
-**Responsibilities:**
+- Policy-based design allows:
 
-- Open the source
-- Read telemetry data line-by-line
+  - CPU telemetry
 
-This allows swapping:
+  - RAM telemetry
 
-- File-based telemetry
-- Socket-based telemetry
-- Hardware / driver-backed telemetry
+  - Future extensions without modifying core logic
 
-### `FileTelemetrySourceImpl`
+  - ### 3️⃣ LogManager
 
-A concrete implementation that reads telemetry from a file.
+    - Central logging coordinator
+    - Fan-out logging to multiple sinks
+    - Owns no sinks (non-owning references)
+    - Thread-safe logging interface
 
-This is used by `main()` to simulate incoming telemetry streams.
+    ------
+
+    ### 4️⃣ Sinks
+
+    - **ConsoleSink** → stdout
+    - **FileSink** → persistent logs
+    - Virtual interface with concrete implementations
+
+    ------
+
+    ### 5️⃣ ThreadPool
+
+    - Task-based execution
+    - Safe shutdown:
+      - Workers exit first
+      - Threads join
+      - No tasks outlive their dependencies
+
+    ------
+
+    ## ⚠️ Important Design Lesson (Key Takeaway)
+
+    > **Threads must never outlive the objects they use.**
+
+    This phase explicitly handles:
+
+    - Virtual function calls across threads
+    - Proper destruction order
+    - Avoiding `pure virtual method called` crashes
+
+    ThreadPool destruction is guaranteed **before**:
+
+    - `LogManager`
+    - `ConsoleSink`
+    - `FileSink`
+
+## 🛑 Shutdown Flow
+
+1. Telemetry source finishes reading
+2. Producer sets `done = true`
+3. Consumer drains remaining messages
+4. Worker threads exit
+5. ThreadPool joins all threads
+6. Logger and sinks are destroyed safely
+
+No sleeps. No races. No UB.
 
 ------
 
-## Policy-Based Log Formatting
+## ▶️ How to Run
 
-### Motivation
-
-Telemetry rules (thresholds, units, severity mapping) **do not change at runtime**.
- Encoding them dynamically would be unnecessary and error-prone.
-
-Instead, the system uses **compile-time policies**.
-
-------
-
-### Formatter Template
+1. Prepare telemetry file:
 
 ```
-template<typename Policy>
-class LogFormatter;
+telemetry.txt
 ```
 
-The policy defines:
-
-- Telemetry source
-- Units
-- Severity thresholds
-- Severity inference logic
-
-There is **no inheritance** and **no virtual dispatch**.
-
-------
-
-### Example Policy: RAM
+Example content:
 
 ```
-struct CpuPolicy
-{
-    static constexpr float WARNING = 75.0f;
-    static constexpr float CRITICAL = 90.0f;
-    static constexpr std::string_view unit = "%";
-    static constexpr TelemetrySrc_enum context = TelemetrySrc_enum::CPU;
-
-    static constexpr SeverityLvl_enum inferSeverity(float val)
-    {
-        if (val > CRITICAL)
-            return SeverityLvl_enum::CRITICAL;
-        if (val > WARNING)
-            return SeverityLvl_enum::WARNING;
-        return SeverityLvl_enum::INFO;
-    }
-};
-struct RamPolicy
-{
-    static constexpr int WARNING = 8 ;
-    static constexpr float CRITICAL = 12;
-    static constexpr std::string_view unit = "GB";
-    static constexpr TelemetrySrc_enum context = TelemetrySrc_enum::RAM;
-    static constexpr SeverityLvl_enum inferSeverity(float val)
-    {
-        if (val > CRITICAL)
-            return SeverityLvl_enum::CRITICAL;
-        if (val > WARNING)
-            return SeverityLvl_enum::WARNING;
-        return SeverityLvl_enum::INFO;
-    }
+1
+2
+3
+4
+5
+6
 ```
 
-Other policies (`CpuPolicy`, `RamPolicy`) follow the same structure.
+## ▶️ Build & Run
 
-The formatter **expects** the policy to provide `inferSeverity`.
- This is enforced at compile time.
-
-------
-
-## `LogFormatter` Responsibilities
-
-### `formatDataToLogMsg`
-
-- Accepts raw telemetry input as `std::string`
-- Parses the value
-- Infers severity using the policy
-- Generates a timestamp
-- Constructs a `LogMessage`
-
-Returns:
+To build and run the telemetry logging system, follow these steps:
 
 ```
-std::optional<LogMessage>
+# Generate build files in a separate directory
+cmake . -B build -DBUILD_TYPE=MAIN
+
+# Go to the build directory
+cd build
+
+# Compile the program
+make
+
+# Run the executable
+./program
 ```
-
-This explicitly represents **success or failure**, without exceptions.
-
-------
-
-### `msgDescription`
-
-Generates a human-readable message describing:
-
-- The telemetry source
-- The measured value
-- The unit
-- The severity meaning
-
-------
-
-### `currentTimeStamp`
-
-Generates the timestamp **at message construction time**, not at dispatch time.
-
-------
-
-## `LogMessage`
-
-A value-type object representing a single log entry.
-
-**Characteristics:**
-
-- No I/O
-- No global state
-- Fully copyable
-- Easy to test
-- Independent of output mechanism
-
-**Contains:**
-
-- Source name
-- Timestamp
-- Telemetry context
-- Severity level
-- Message payload
-
-------
-
-## Log Sinks
-
-### `Ilogsink`
-
-An interface that defines a single responsibility:
-
-> “Consume a `LogMessage`.”
-
-Concrete implementations include:
-
-- `consolesink`
-- `filesink`
-
-This allows:
-
-- Multiple sinks at once
-- Easy mocking for tests
-- Zero coupling with `LogManager`
-
-------
-
-## `LogManager`
-
-The central coordinator of the system.
-
-**Responsibilities:**
-
-- Accept log messages
-- Buffer them internally
-- Dispatch them to all configured sinks
-
-### Design Choices
-
-- Knows nothing about telemetry rules
-- Knows nothing about formatting
-- Only coordinates message flow
-
-This makes it **simple, testable, and reusable**.
-
-------
-
-## Builder Design Pattern (LogManager)
-
-### Why Builder?
-
-`LogManager` requires:
-
-- Buffer capacity
-- One or more sinks
-- Valid configuration before use
-
-A factory would hide too much.
- A builder **guides construction step-by-step**.
-
-------
-
-### Builder Characteristics
-
-- User must create a builder
-- Supports method chaining
-- `build()` returns a fully valid `LogManager`
-
-Example:
-
-```
-logmanagerbuilder builder(10);
-builder.addSink(consoleSink.get())
-       .addSink(fileSink.get());
-
-LogManager logManager = builder.build();
-```
-
-
-
-------
-
-## Main Application Flow
-
-The `main()` function acts as a **composition root** only.
-
-**Responsibilities:**
-
-- Wire components together
-- Select policies and sinks
-- Run the telemetry pipeline
-
-### Runtime Flow
-
-1. Open telemetry source
-2. Build `LogManager` using builder
-3. Read telemetry line-by-line
-4. Format using `LogFormatter<RamPolicy>`
-5. Log valid messages
-6. Handle parsing failures
-7. Flush logs and print statistics
-
-There is **no business logic** inside `main()`.
-
-------
-
-## Bonus: Template Ring Buffer
-
-To replace `std::vector` buffering, a fixed-size ring buffer is provided.
-
-### Design
-
-- Template-based
-- Wraps `std::vector<std::optional<T>>`
-- FIFO semantics
-- Non-copyable
-- Move-enabled
-
-### API
-
-```
-bool tryPush(T&& value);
-std::optional<T> tryPop();
-```
-
-### Benefits
-
-- Bounded memory
-- No reallocations
-- Explicit failure handling
-- Ideal for telemetry systems
-
-------
-
-## Libraries Used
-
-### `magic_enum`
-
-Used for:
-
-- Enum-to-string conversion
-- Debug output
-- Cleaner logs
-
-**Advantages:**
-
-- Header-only
-- Compile-time
-- No manual mapping tables
-
-------
-
-## Summary
-
-This project demonstrates:
-
-- Practical modern C++ design
-- Compile-time safety without runtime cost
-- Proper use of templates and policies
-- Correct application of Factory & Builder patterns
-- Clean, testable, extensible architecture
