@@ -1,0 +1,8 @@
+{
+    "logger.methods.logging" : {
+        "service_id": 4666,
+        "instances" : {
+            "logger.methods.justSendHi": 22136
+        }
+    }
+}

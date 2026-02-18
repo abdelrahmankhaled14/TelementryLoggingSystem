@@ -1,5 +1,6 @@
 build/
-phase_*/build/
+phase_*/build_server/
 *.log
 *.out
 *.vscode
+
