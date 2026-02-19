@@ -1,0 +1,26 @@
+import "platform:/plugin/org.genivi.commonapi.someip/deployment/CommonAPI-4-SOMEIP_deployment_spec.fdepl"
+import "x.fidl"
+
+define org.genivi.commonapi.someip.deployment for interface logger.methods.logging 
+{
+   
+    SomeIpServiceID = 4666
+    method requestData
+    {
+        SomeIpMethodID = 1
+        SomeIpReliable = false
+    }
+    
+}
+
+define org.genivi.commonapi.someip.deployment for provider as Service {
+    instance logger.methods.logging {
+        InstanceId = "logger.methods.justSendHi"
+        
+        SomeIpInstanceID = 22136
+    
+        SomeIpUnicastAddress = "127.0.0.1"
+        SomeIpReliableUnicastPort = 30499
+        SomeIpUnreliableUnicastPort = 30499
+    }
+}

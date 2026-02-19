@@ -1,0 +1,13 @@
+package logger.methods
+
+interface logging
+{
+    version { major 1 minor 0 }
+    method requestData
+    {
+        out
+        {
+            Int32 percentage
+        }
+    }
+}
