@@ -7,15 +7,11 @@ project(telementry VERSION 1.0 LANGUAGES CXX)
 # ============================================================
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-
-
 # ============================================================
 # Dependencies
 # ============================================================
 find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
-
 # Try to find CommonAPI
 find_package(CommonAPI REQUIRED)
 find_package(CommonAPI-SomeIP REQUIRED)
@@ -25,12 +21,8 @@ find_package(vsomeip3 REQUIRED)
 # ============================================================
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/src-gen)
-
-
 include_directories(${COMMONAPI_INCLUDE_DIRS})
-
 include_directories(${COMMONAPI_SOMEIP_INCLUDE_DIRS})
-
 
 file(GLOB MYLIB_SOURCES
 ${PROJECT_SOURCE_DIR}/src/*.cpp
