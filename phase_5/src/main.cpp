@@ -1,68 +1,124 @@
-#include <CommonAPI/CommonAPI.hpp>
-#include <v1/logger/methods/loggingProxy.hpp>
+#include "threadpool.hpp"
+#include "logmanager.hpp"
+#include "consolesink.hpp"
+#include "filesink.hpp"
+#include "formatter.hpp"
+#include "policies.hpp"
+#include "CommonAPITelemetrySourceImpl.hpp"
+#include "ringbuffer.hpp"
 #include <iostream>
-#include <thread>
+#include <mutex>
+#include <condition_variable>
 
-using namespace std::chrono_literals;
-using namespace v1::logger::methods;
-
-constexpr std::string_view DOMAIN = "local";
-constexpr std::string_view INSTANCE = "logger.methods.justSendHi";
-constexpr std::string_view CONNECTION = "someip";
-
-int main(int argc, char const *argv[]) {
+int main() {
+    /* ============ THREADPOOL ============ */
+    ThreadPool pool(3, 50);
     std::cout << "\n========================================" << std::endl;
-    std::cout << "[Client] Starting with SomeIP binding" << std::endl;
+    std::cout << "Telemetry logging app started" << std::endl;
     std::cout << "========================================\n" << std::endl;
 
-    auto runtime = CommonAPI::Runtime::get();
+    /* ============ SINKS ============ */
+    consolesink console;
+    filesink file1("log1.txt");
+    filesink file2("log2.txt");
+    logmanagerbuilder builder(20);
+    builder.addSink(&console)
+            .addSink(&file1)
+            .addSink(&file2);
+    LogManager logger = builder.build();
 
-    std::cout << "[Client] Building proxy..." << std::endl;
-    std::cout << "[Client] Domain: " << DOMAIN << std::endl;
-    std::cout << "[Client] Instance: " << INSTANCE << std::endl;
-    std::cout << "[Client] Connection: " << CONNECTION << std::endl;
-
-    auto proxy = runtime->buildProxy<loggingProxy>(
-        std::string(DOMAIN),
-        std::string(INSTANCE),
-        std::string(CONNECTION)
-    );
-
-    std::cout << "[Client] Waiting for service..." << std::endl;
-    int timeout = 100;
-    while (!proxy->isAvailable() && timeout > 0) {
-        std::this_thread::sleep_for(50ms);
-        timeout--;
-    }
-
-    if (!proxy->isAvailable()) {
-        std::cerr << "[Client] Service not available!" << std::endl;
+    /* ============ TELEMETRY SOURCE (CommonAPI Client) ============ */
+    std::cout << "[CLIENT] Initializing CommonAPI telemetry source..." << std::endl;
+    auto& source = CommonAPITelemetrySourceImpl::getInstance();
+    
+    if (!source.OpenSource()) {
+        std::cerr << "[CLIENT] Failed to open telemetry source" << std::endl;
+        std::cerr << "[CLIENT] Make sure server is running!" << std::endl;
         return 1;
     }
+    std::cout << "[CLIENT] Telemetry source opened successfully\n" << std::endl;
 
-    std::cout << "\n========================================" << std::endl;
-    std::cout << "[Client] Service available! Starting requests..." << std::endl;
-    std::cout << "========================================\n" << std::endl;
+    /* ============ SHARED STATE ============ */
+    RingBuffer<logmessage> formattedQueue(50);
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::condition_variable cv2;
+    bool consumerDone = false;
+    bool done = false;
 
-    int iteration = 0;
-    while (true) {
-        iteration++;
+    /* ============ LOGGER (CONSUMER) ============ */
+    pool.addTask([&] {
+        std::cout << "[LOGGER] Consumer thread started" << std::endl;
+        
+        while (true) {
+            std::unique_lock<std::mutex> lock(mtx);
+            cv.wait(lock, [&] {
+                return !formattedQueue.isEmpty() || done;
+            });
 
-        CommonAPI::CallStatus callStatus;
-        int32_t percentage;
+            while (!formattedQueue.isEmpty()) {
+                auto msg = formattedQueue.tryPop();
+                lock.unlock();
+                
+                if (msg) {
+                    logger.log(*msg);
+                    logger.flush();
+                }
+                lock.lock();
+            }
 
-        proxy->requestData(callStatus, percentage);
+            if (done && formattedQueue.isEmpty()) {
+                consumerDone = true;
+                std::cout << "[LOGGER] Consumer finished" << std::endl;
+                cv2.notify_all();
+                break;
+            }
+        }
+    });
 
-        if (callStatus == CommonAPI::CallStatus::SUCCESS) {
-            std::cout << "[Client] Iteration " << iteration << ": Received " 
-                      << percentage << "%" << std::endl;
-        } else {
-            std::cout << "[Client] Call failed!" << std::endl;
-            break;
+    /* ============ FORMATTER (PRODUCER) ============ */
+    pool.addTask([&] {
+        std::cout << "[FORMATTER] Producer thread started" << std::endl;
+        
+        int iteration = 0;
+        std::string raw;
+        
+        while (source.ReadSource(raw)) {
+            iteration++;
+            std::cout << "[FORMATTER] Iteration " << iteration << ": Got value from server: " << raw << std::endl;
+            
+            auto msgOpt = LogFormatter<CpuPolicy>::formatDataToLogMsg(raw);
+            if (!msgOpt) {
+                std::cout << "[FORMATTER] Failed to format message" << std::endl;
+                continue;
+            }
+
+            {
+                std::lock_guard<std::mutex> lock(mtx);
+                formattedQueue.tryPush(std::move(*msgOpt));
+            }
+            cv.notify_one();
+            
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
-        std::this_thread::sleep_for(1s);
-    }
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            done = true;
+        }
+        std::cout << "[FORMATTER] Producer finished after " << iteration << " iterations" << std::endl;
+        cv.notify_all();
+    });
 
+    /* ============ WAIT FOR WORK ============ */
+    std::unique_lock<std::mutex> lock(mtx);
+    cv2.wait(lock, [&] { return consumerDone; });
+    
+    pool.shutdown();
+    
+    std::cout << "\n========================================" << std::endl;
+    std::cout << "Telemetry logging finished" << std::endl;
+    std::cout << "========================================\n" << std::endl;
+    
     return 0;
 }

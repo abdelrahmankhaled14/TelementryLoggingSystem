@@ -2,18 +2,15 @@
 #include <iostream>
 #include <CommonAPI/CommonAPI.hpp>
 
-// Constructor
 CommonAPITelemetrySourceImpl::CommonAPITelemetrySourceImpl() 
     : proxy_(nullptr), is_open_(false) {
     std::cout << "[CLIENT] Singleton instance created." << std::endl;
 }
 
-// Destructor
 CommonAPITelemetrySourceImpl::~CommonAPITelemetrySourceImpl() {
     std::cout << "[CLIENT] Destructor called." << std::endl;
 }
 
-// OpenSource - Initialize connection to server
 bool CommonAPITelemetrySourceImpl::OpenSource() {
     if (is_open_) {
         std::cout << "[CLIENT] Already open." << std::endl;
@@ -42,8 +39,7 @@ bool CommonAPITelemetrySourceImpl::OpenSource() {
         
         std::cout << "[CLIENT] Proxy created, waiting for availability..." << std::endl;
         
-        // Wait for service to be available
-        int timeout = 50;  // 5 seconds (50 * 100ms)
+        int timeout = 50;  
         while (!proxy_->isAvailable() && timeout > 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             timeout--;
@@ -64,7 +60,6 @@ bool CommonAPITelemetrySourceImpl::OpenSource() {
     }
 }
 
-// ReadSource - Send request and get response
 bool CommonAPITelemetrySourceImpl::ReadSource(std::string& out) {
     if (!is_open_) {
         std::cerr << "[CLIENT] Source not open. Call OpenSource() first." << std::endl;
@@ -81,7 +76,6 @@ bool CommonAPITelemetrySourceImpl::ReadSource(std::string& out) {
         
         int32_t response;
         
-        // Call the method on the server
         CommonAPI::CallStatus callStatus;
         proxy_->requestData(callStatus, response);
         
@@ -89,7 +83,8 @@ bool CommonAPITelemetrySourceImpl::ReadSource(std::string& out) {
             std::cout << "[CLIENT] Got response: " << response << "%" << std::endl;
             out = std::to_string(response);
             return true;
-        } else {
+        } 
+        else {
             std::cerr << "[CLIENT] Call failed with status: " 
                       << static_cast<int>(callStatus) << std::endl;
             return false;

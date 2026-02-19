@@ -109,31 +109,27 @@ find_package(GTest REQUIRED)
 find_package(Threads REQUIRED)
 
 # Try to find CommonAPI
-find_package(CommonAPI QUIET)
-find_package(CommonAPI-SomeIP QUIET)
-
+find_package(CommonAPI REQUIRED)
+find_package(CommonAPI-SomeIP REQUIRED)
+find_package(vsomeip3 REQUIRED)
 # ============================================================
 # Include directories
 # ============================================================
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/src-gen)
-include_directories(/usr/local/include)
-include_directories(/usr/include)
+# include_directories(/usr/local/include)
+# include_directories(/usr/include)
 
-if(COMMONAPI_FOUND)
-    include_directories(${COMMONAPI_INCLUDE_DIRS})
-endif()
+include_directories(${COMMONAPI_INCLUDE_DIRS})
 
-if(COMMONAPI_SOMEIP_FOUND)
-    include_directories(${COMMONAPI_SOMEIP_INCLUDE_DIRS})
-endif()
+include_directories(${COMMONAPI_SOMEIP_INCLUDE_DIRS})
 
 # ============================================================
 # Link directories
 # ============================================================
-link_directories(/usr/local/lib)
-link_directories(/usr/lib)
-link_directories(/usr/lib/x86_64-linux-gnu)
+# link_directories(/usr/local/lib)
+# link_directories(/usr/lib)
+# link_directories(/usr/lib/x86_64-linux-gnu)
 
 # ============================================================
 # Library sources
@@ -142,13 +138,11 @@ file(GLOB MYLIB_SOURCES
 ${PROJECT_SOURCE_DIR}/src/*.cpp
 )
 
-# Exclude main.cpp and server.cpp
-list(FILTER MYLIB_SOURCES EXCLUDE REGEX ".*/main\\.cpp$")
-list(FILTER MYLIB_SOURCES EXCLUDE REGEX ".*/server\\.cpp$")
-
 # Add generated files
-file(GLOB GENERATED_SOURCES
-${PROJECT_SOURCE_DIR}/src-gen/v1/logger/methods/*.cpp
+set(GENERATED_SOURCES
+    ${PROJECT_SOURCE_DIR}/src-gen/v1/logger/methods/loggingSomeIPDeployment.cpp
+    ${PROJECT_SOURCE_DIR}/src-gen/v1/logger/methods/loggingSomeIPProxy.cpp
+    ${PROJECT_SOURCE_DIR}/src-gen/v1/logger/methods/loggingSomeIPStubAdapter.cpp
 )
 
 add_library(mylib STATIC
@@ -165,70 +159,27 @@ target_link_libraries(mylib PUBLIC
 Threads::Threads
 )
 
-# ============================================================
-# Executables
-# ============================================================
-if(BUILD_TYPE STREQUAL "MAIN")
-    message(STATUS "Building MAIN executable (Client)")
-    add_executable(program
-        src/main.cpp
-    )
-    target_link_libraries(program PRIVATE
-        mylib
-        Threads::Threads
-        CommonAPI
-        CommonAPI-SomeIP
-    )
+message(STATUS "Building MAIN executable (Client)")
+add_executable(program
+    src/main.cpp
+    ${GENERATED_SOURCES}
 
-elseif(BUILD_TYPE STREQUAL "SERVER")
-    message(STATUS "Building SERVER executable")
-    add_executable(server
-        src/server.cpp
-    )
-    target_link_libraries(server PRIVATE
-        mylib
-        Threads::Threads
-        CommonAPI
-        CommonAPI-SomeIP
-    )
+)
+target_link_libraries(program PRIVATE
+    mylib
+    Threads::Threads
+    CommonAPI
+    CommonAPI-SomeIP
+)
 
-elseif(BUILD_TYPE STREQUAL "TEST_LOGMANAGER")
-    message(STATUS "Building TEST_LOGMANAGER")
-    add_executable(program
-        test/logmanagertest.cpp
-    )
-    target_link_libraries(program
-        mylib
-        GTest::gtest
-        GTest::gmock
-        GTest::gtest_main
-        GTest::gmock_main
-        Threads::Threads
-    )
-    enable_testing()
-    include(GoogleTest)
-    gtest_discover_tests(program)
-
-elseif(BUILD_TYPE STREQUAL "TEST_LOGMESSAGE")
-    message(STATUS "Building TEST_LOGMESSAGE")
-    add_executable(program
-        test/logmessagetest.cpp
-    )
-    target_link_libraries(program
-        mylib
-        GTest::gtest
-        GTest::gmock
-        GTest::gtest_main
-        GTest::gmock_main
-        Threads::Threads
-    )
-    enable_testing()
-    include(GoogleTest)
-    gtest_discover_tests(program)
-
-else()
-    message(FATAL_ERROR
-"Invalid BUILD_TYPE: ${BUILD_TYPE}. "
-"Must be MAIN, TEST_LOGMANAGER, TEST_LOGMESSAGE, or SERVER"
-    )
-endif()
+message(STATUS "Building SERVER executable")
+add_executable(server
+    src/server.cpp
+    ${GENERATED_SOURCES}
+)
+target_link_libraries(server PRIVATE
+    mylib
+    Threads::Threads
+    CommonAPI
+    CommonAPI-SomeIP
+)

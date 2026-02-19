@@ -48,10 +48,10 @@ int main(int argc, char const *argv[]) {
         myService
     );
 
-    // if (!success) {
-    //     std::cerr << "[Server] Failed to register!" << std::endl;
-    //     return 1;
-    // }
+    if (!success) {
+        std::cerr << "[Server] Failed to register!" << std::endl;
+        return 1;
+    }
 
     std::cout << "[Server] Service registered!" << std::endl;
     std::cout << "[Server] Waiting for requests...\n" << std::endl;
