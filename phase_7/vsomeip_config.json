@@ -1,0 +1,44 @@
+{
+  "unicast": "127.0.0.1",
+  "netmask": "255.255.255.0",
+
+  "logging": {
+    "level": "info",
+    "console": "false",
+    "file": {
+      "enable": "false"
+    }
+  },
+
+  "applications": [
+    {
+      "name": "server",
+      "id": "0x2222"
+    },
+    {
+      "name": "program",
+      "id": "0x1111"
+    }
+  ],
+
+  "routing": "server",
+
+  "services": [
+    {
+      "service": "0x123A",
+      "instance": "0x5678",
+      "unreliable": "30499",
+      "reliable": {
+        "port": "30500",
+        "enable_magic_cookies": false
+      }
+    }
+  ],
+
+  "service-discovery": {
+    "enable": "true",
+    "multicast": "224.244.224.245",
+    "port": "30490",
+    "protocol": "udp"
+  }
+}
