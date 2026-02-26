@@ -1,0 +1,33 @@
+/** x.fidl
+ * Telemetry interface for CPU/RAM/Temperature
+ */
+
+package v1.logger.methods
+
+// ---------- Type collection for telemetry ----------
+typeCollection TelemetryTypes {
+    version { major 1 minor 0 }
+
+    struct TelemetrySnapshot {
+
+        // Per-core CPU loads in percent (0–100), one entry per core
+        String coreLoads
+
+        // CPU temperature in °C (e.g. 0–150)
+        UInt16 temperatureC
+
+        // RAM usage in percent (0–100)
+        UInt32 ramUsagePercentage
+    }
+}
+
+// ---------- Service interface ----------
+interface logging {
+    version { major 1 minor 0 }
+
+    method requestData {
+        out {
+            TelemetryTypes.TelemetrySnapshot data
+        }
+    }
+}
