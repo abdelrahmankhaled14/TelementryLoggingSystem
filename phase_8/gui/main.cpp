@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 
     LogParser parser;
     // If your log path is fixed somewhere else:
-    parser.setLogFilePath("/home/abdo/projects/linux/C++/project/TelementryLoggingSystem/phase_7/build/cpu.log");
+    parser.setLogFilePath("/home/abdo/projects/linux/C++/project/TelementryLoggingSystem/phase_8/build/cpu.log");
 
     QQmlApplicationEngine engine;
 

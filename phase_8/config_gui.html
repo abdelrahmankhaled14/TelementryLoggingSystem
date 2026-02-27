@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Telemetry Config Generator</title>
+  <style>
+    :root {
+      --bg-color: #070b10;
+      --bg-elevated: #111826;
+      --bg-elevated-soft: #0d131f;
+      --border-color: #232b3b;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.15);
+      --accent-strong: #60a5fa;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #f97373;
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --shadow-soft: 0 14px 35px rgba(0, 0, 0, 0.55);
+      --shadow-subtle: 0 6px 18px rgba(0, 0, 0, 0.3);
+      --transition-fast: 0.18s ease-out;
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      background: radial-gradient(circle at top, #1e293b 0, #020617 55%, #000 100%);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 960px;
+      background: linear-gradient(135deg, rgba(15,23,42,0.96), rgba(6,12,23,0.96));
+      border-radius: 22px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(148,163,184,0.2);
+      padding: 22px 24px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* subtle glow top border */
+    .app-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top center,
+        rgba(59, 130, 246, 0.35),
+        transparent 55%);
+      opacity: 0.7;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    .app-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 16px;
+      gap: 8px;
+    }
+
+    header h1 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    header h1 span.badge {
+      font-size: 0.70rem;
+      font-weight: 500;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 780px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: radial-gradient(circle at top left, #1f2933 0, rgba(15,23,42,0.9) 40%, #020617 100%);
+      border-radius: var(--radius-lg);
+      padding: 14px 14px 12px;
+      border: 1px solid rgba(148,163,184,0.3);
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .panel-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+    }
+
+    .panel-tag {
+      font-size: 0.72rem;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.4);
+      color: var(--text-muted);
+    }
+
+    fieldset {
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    legend {
+      display: none;
+    }
+
+    .section {
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-md);
+      background: rgba(15,23,42,0.6);
+      border: 1px solid rgba(148,163,184,0.18);
+    }
+
+    .section-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--accent-strong);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-title small {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: none;
+    }
+
+    .row {
+      margin: 6px 0;
+    }
+
+    label {
+      font-size: 0.84rem;
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    input[type="number"],
+    select {
+      background: var(--bg-elevated-soft);
+      border-radius: 999px;
+      border: 1px solid var(--border-color);
+      padding: 5px 8px;
+      color: var(--text-main);
+      font-size: 0.82rem;
+      outline: none;
+      min-width: 80px;
+      transition: border-color var(--transition-fast),
+                  box-shadow var(--transition-fast),
+                  background-color var(--transition-fast),
+                  transform 0.12s ease-out;
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      border-color: var(--accent-strong);
+      box-shadow: 0 0 0 1px var(--accent-soft);
+      background-color: #020617;
+      transform: translateY(-0.5px);
+    }
+
+    input[type="checkbox"],
+    input[type="radio"] {
+      accent-color: var(--accent);
+      cursor: pointer;
+      width: 14px;
+      height: 14px;
+    }
+
+    small {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    textarea {
+      width: 100%;
+      height: 260px;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.78rem;
+      background: #020617;
+      color: var(--accent-strong);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(148,163,184,0.5);
+      padding: 8px 9px;
+      resize: vertical;
+      outline: none;
+      box-shadow: inset 0 0 0 1px rgba(15,23,42,0.7);
+    }
+
+    textarea:focus {
+      border-color: var(--accent-strong);
+      box-shadow: 0 0 0 1px var(--accent-soft);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 7px 14px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      transition: background-color var(--transition-fast),
+                  transform 0.1s ease-out,
+                  box-shadow var(--transition-fast);
+    }
+
+    #generateBtn {
+      background: var(--accent);
+      color: #0b1120;
+      box-shadow: 0 10px 18px rgba(37,99,235,0.35);
+    }
+
+    #generateBtn:hover {
+      background: var(--accent-strong);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 22px rgba(37,99,235,0.45);
+    }
+
+    #downloadBtn {
+      background: transparent;
+      color: var(--text-main);
+      border: 1px solid rgba(148,163,184,0.6);
+      box-shadow: none;
+    }
+
+    #downloadBtn:hover {
+      background: rgba(15,23,42,0.9);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.55);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .pill {
+      font-size: 0.78rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      color: var(--text-muted);
+      background: rgba(15,23,42,0.9);
+    }
+
+    .pill strong {
+      color: var(--accent-strong);
+      font-weight: 600;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="app-shell">
+    <div class="app-inner">
+      <header>
+        <div>
+          <h1>
+            Telemetry Config
+            <span class="badge">JSON</span>
+          </h1>
+          <p>Generate a runtime config.json for your telemetry logging app.</p>
+        </div>
+        <p><small>Dark mode · Local only · No backend</small></p>
+      </header>
+
+      <div class="layout">
+        <!-- LEFT: Form -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Configuration</div>
+            <div class="panel-tag">Source · Sinks · Rates</div>
+          </div>
+
+          <fieldset>
+            <!-- SOURCE -->
+            <div class="section">
+              <div class="section-title">
+                Source
+                <small>Choose input type & mapping</small>
+              </div>
+
+              <div class="row">
+                <label for="sourceType">
+                  Source type
+                  <select id="sourceType">
+                    <option value="someip">SOME/IP · 3 values (cpu/ram/temp)</option>
+                    <option value="file">File · single numeric value</option>
+                    <option value="socket">Socket · single numeric value</option>
+                  </select>
+                </label>
+              </div>
+
+              <!-- SOME/IP mapping -->
+              <div id="someipMapping">
+                <small>Order of values coming as <code>v0;v1;v2</code> from SOME/IP:</small>
+                <div class="row">
+                  <label>v0 →
+                    <select id="map0">
+                      <option value="cpu">cpu</option>
+                      <option value="ram">ram</option>
+                      <option value="temp">temp</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="row">
+                  <label>v1 →
+                    <select id="map1">
+                      <option value="cpu">cpu</option>
+                      <option value="ram">ram</option>
+                      <option value="temp">temp</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="row">
+                  <label>v2 →
+                    <select id="map2">
+                      <option value="cpu">cpu</option>
+                      <option value="ram">ram</option>
+                      <option value="temp">temp</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="pill-row">
+                  <span class="pill">
+                    Example: raw <strong>"30;55;60"</strong> with mapping [cpu,temp,ram]
+                    → cpu=30, temp=55, ram=60
+                  </span>
+                </div>
+              </div>
+
+              <!-- File / Socket policy -->
+              <div id="singlePolicy" class="hidden">
+                <small>This source produces a single numeric value. What does it represent?</small>
+                <div class="row">
+                  <label><input type="radio" name="policy" value="cpu" checked> CPU</label>
+                </div>
+                <div class="row">
+                  <label><input type="radio" name="policy" value="ram"> RAM</label>
+                </div>
+                <div class="row">
+                  <label><input type="radio" name="policy" value="temp"> TEMP</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- SINKS -->
+            <div class="section">
+              <div class="section-title">
+                Sinks
+                <small>Where to send log messages</small>
+              </div>
+              <div class="row">
+                <label><input type="checkbox" id="sinkConsole" checked> Console</label>
+              </div>
+              <div class="row">
+                <label><input type="checkbox" id="sinkCpuFile" checked> CPU file</label>
+              </div>
+              <div class="row">
+                <label><input type="checkbox" id="sinkRamFile" checked> RAM file</label>
+              </div>
+              <div class="row">
+                <label><input type="checkbox" id="sinkTempFile" checked> TEMP file</label>
+              </div>
+            </div>
+
+            <!-- RATES -->
+            <div class="section">
+              <div class="section-title">
+                Rates
+                <small>Control producer/consumer speed</small>
+              </div>
+              <div class="row">
+                <label for="parseMs">
+                  Parse rate (ms)
+                  <input type="number" id="parseMs" value="0" min="0">
+                </label>
+                <br>
+                <small>0 → no extra sleep, producer runs as fast as the source delivers.</small>
+              </div>
+              <div class="row">
+                <label for="logMs">
+                  Log rate (ms)
+                  <input type="number" id="logMs" value="0" min="0">
+                </label>
+                <br>
+                <small>Optional / reserved if you need it later in C++.</small>
+              </div>
+            </div>
+          </fieldset>
+
+        </div>
+
+        <!-- RIGHT: Output JSON -->
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">Generated JSON</div>
+            <div class="panel-tag">config.json</div>
+          </div>
+
+          <fieldset>
+            <div class="btn-row">
+              <button id="generateBtn">
+                ▶ Generate
+              </button>
+              <button id="downloadBtn">
+                ⬇ Download config.json
+              </button>
+            </div>
+            <textarea id="output" readonly></textarea>
+          </fieldset>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const sourceTypeEl   = document.getElementById('sourceType');
+    const someipMapping  = document.getElementById('someipMapping');
+    const singlePolicy   = document.getElementById('singlePolicy');
+
+    const map0El = document.getElementById('map0');
+    const map1El = document.getElementById('map1');
+    const map2El = document.getElementById('map2');
+
+    const sinkConsoleEl  = document.getElementById('sinkConsole');
+    const sinkCpuFileEl  = document.getElementById('sinkCpuFile');
+    const sinkRamFileEl  = document.getElementById('sinkRamFile');
+    const sinkTempFileEl = document.getElementById('sinkTempFile');
+
+    const parseMsEl = document.getElementById('parseMs');
+    const logMsEl   = document.getElementById('logMs');
+
+    const outputEl      = document.getElementById('output');
+    const generateBtn   = document.getElementById('generateBtn');
+    const downloadBtn   = document.getElementById('downloadBtn');
+
+    function updateSourceUI() {
+      const type = sourceTypeEl.value;
+      if (type === 'someip') {
+        someipMapping.classList.remove('hidden');
+        singlePolicy.classList.add('hidden');
+      } else {
+        someipMapping.classList.add('hidden');
+        singlePolicy.classList.remove('hidden');
+      }
+    }
+
+    sourceTypeEl.addEventListener('change', updateSourceUI);
+    updateSourceUI();
+
+    function getSelectedPolicy() {
+      const radios = document.querySelectorAll('input[name="policy"]');
+      for (const r of radios) {
+        if (r.checked) return r.value;
+      }
+      return 'cpu';
+    }
+
+    function buildConfigObject() {
+      const type = sourceTypeEl.value;
+
+      const source = { type: type };
+
+      if (type === 'someip') {
+        source.mapping = [
+          map0El.value,
+          map1El.value,
+          map2El.value
+        ];
+      } else {
+        source.policy = getSelectedPolicy();
+      }
+
+      const sinks = {
+        console:  sinkConsoleEl.checked,
+        cpu_file: sinkCpuFileEl.checked,
+        ram_file: sinkRamFileEl.checked,
+        temp_file: sinkTempFileEl.checked
+      };
+
+      const rates = {
+        parse_ms: Number(parseMsEl.value) || 0,
+        log_ms:   Number(logMsEl.value)   || 0
+      };
+
+      return {
+        source: source,
+        sinks: sinks,
+        rates: rates
+      };
+    }
+
+    function generateJson() {
+      const cfg = buildConfigObject();
+      const text = JSON.stringify(cfg, null, 2);
+      outputEl.value = text;
+    }
+
+    function downloadJson() {
+      if (!outputEl.value.trim()) {
+        generateJson();
+      }
+      const blob = new Blob([outputEl.value], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'config.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    generateBtn.addEventListener('click', generateJson);
+    downloadBtn.addEventListener('click', downloadJson);
+
+    // Generate once at startup
+    generateJson();
+  </script>
+</body>
+</html>

@@ -1,58 +1,66 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
-import QtQuick.Controls 2.5
+import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
-Window {
+ApplicationWindow {
     id: root
     visible: true
     width: 1000
     height: 600
     title: qsTr("Telemetry Dashboard")
 
-    color: "#05070a"   // dark cockpit background
+    color: "#05070a"
 
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 16
         spacing: 16
 
-        // ==== Top row: three car-style gauges ====
+        // ===== TOP: 3 GAUGES =====
         RowLayout {
             Layout.fillWidth: true
             Layout.preferredHeight: 260
             spacing: 24
 
-            // ---------- CPU Gauge (like tachometer) ----------
+            // ---------- CPU Gauge ----------
             Item {
                 id: cpuGauge
                 Layout.fillWidth: true
                 Layout.preferredHeight: 260
 
-                // value from backend
+                // values
                 property real value: logParser.cpu
-                // smooth animated value
                 property real displayedValue: 0
-
-                // range mapping
                 property real minValue: 0
                 property real maxValue: 100
-                // angle sweep like car dial (-210° to +30°)
                 property real minAngleDeg: -210
                 property real maxAngleDeg: 30
 
+                // hover zoom
+                property bool hovered: false
+                scale: hovered ? 1.1 : 1.0
+
+                Behavior on scale {
+                    NumberAnimation { duration: 80; easing.type: Easing.InOutQuad }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onEntered: cpuGauge.hovered = true
+                    onExited:  cpuGauge.hovered = false
+                }
+
                 Behavior on displayedValue {
                     NumberAnimation {
-                        duration: 250
+                        duration: 80
                         easing.type: Easing.InOutQuad
                     }
                 }
 
-                onValueChanged: {
-                    displayedValue = value
-                }
+                onValueChanged: displayedValue = value
 
-                // Dial background and arc
                 Canvas {
                     id: cpuCanvas
                     anchors.fill: parent
@@ -64,15 +72,15 @@ Window {
                         var h = height;
                         ctx.reset();
 
-                        // background
-                        var grad = ctx.createRadialGradient(w/2, h/2, 10, w/2, h/2, Math.max(w,h)/2);
+                        var grad = ctx.createRadialGradient(w/2, h/2, 10,
+                                                            w/2, h/2, Math.max(w,h)/2);
                         grad.addColorStop(0, "#11141b");
                         grad.addColorStop(1, "#05070a");
                         ctx.fillStyle = grad;
                         ctx.fillRect(0, 0, w, h);
 
                         var cx = w / 2;
-                        var cy = h * 0.6;              // slightly lower to feel like a real dial
+                        var cy = h * 0.6;
                         var radius = Math.min(w, h) * 0.4;
 
                         var minAngle = cpuGauge.minAngleDeg * Math.PI / 180.0;
@@ -112,7 +120,6 @@ Window {
                         if (frac > 1) frac = 1;
                         var angle = minAngle + frac * (maxAngle - minAngle);
 
-                        // color ramp: green → yellow → red
                         var color = "#26c65b";
                         if (frac > 0.7 && frac <= 0.9)
                             color = "#ffb300";
@@ -133,7 +140,8 @@ Window {
                         ctx.fillText("CPU", cx, cy - radius * 0.45);
 
                         ctx.font = "24px sans-serif";
-                        ctx.fillText(cpuGauge.displayedValue.toFixed(0) + " %", cx, cy + radius * 0.1);
+                        ctx.fillText(cpuGauge.displayedValue.toFixed(0) + " %",
+                                     cx, cy + radius * 0.1);
 
                         ctx.font = "12px sans-serif";
                         ctx.fillStyle = "#9098a6";
@@ -141,14 +149,10 @@ Window {
                     }
                 }
 
-                // Needle on top of canvas
                 Item {
-                    id: cpuNeedleContainer
                     anchors.fill: parent
 
-                    // rotation center around dial center
                     transform: Rotation {
-                        id: cpuNeedleRotation
                         origin.x: width / 2
                         origin.y: height * 0.6
                         angle: {
@@ -162,18 +166,15 @@ Window {
                     }
 
                     Rectangle {
-                        id: cpuNeedle
                         width: 4
                         height: Math.min(parent.width, parent.height) * 0.38
                         radius: 2
                         color: "#ff5252"
                         anchors.horizontalCenter: parent.horizontalCenter
-                        y: parent.height * 0.6 - height   // base at center
-
+                        y: parent.height * 0.6 - height
                         antialiasing: true
                     }
 
-                    // center cap
                     Rectangle {
                         width: 14
                         height: 14
@@ -182,17 +183,14 @@ Window {
                         border.color: "#ff5252"
                         border.width: 2
                         anchors.centerIn: parent
-                        anchors.verticalCenterOffset: parent.height * 0.1  * 0  // keep center aligned
                         y: parent.height * 0.6 - height/2
                     }
                 }
 
-                // trigger repaints on changes
                 onDisplayedValueChanged: cpuCanvas.requestPaint()
                 onWidthChanged: cpuCanvas.requestPaint()
                 onHeightChanged: cpuCanvas.requestPaint()
 
-                // warning light (like check engine)
                 Rectangle {
                     width: 18
                     height: 10
@@ -226,9 +224,24 @@ Window {
                 property real minAngleDeg: -210
                 property real maxAngleDeg: 30
 
-                Behavior on displayedValue {
-                    NumberAnimation { duration: 250; easing.type: Easing.InOutQuad }
+                property bool hovered: false
+                scale: hovered ? 1.1 : 1.0
+
+                Behavior on scale {
+                    NumberAnimation { duration: 80; easing.type: Easing.InOutQuad }
                 }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onEntered: ramGauge.hovered = true
+                    onExited:  ramGauge.hovered = false
+                }
+
+                Behavior on displayedValue {
+                    NumberAnimation { duration: 80; easing.type: Easing.InOutQuad }
+                }
+
                 onValueChanged: displayedValue = value
 
                 Canvas {
@@ -242,7 +255,8 @@ Window {
                         var h = height;
                         ctx.reset();
 
-                        var grad = ctx.createRadialGradient(w/2, h/2, 10, w/2, h/2, Math.max(w,h)/2);
+                        var grad = ctx.createRadialGradient(w/2, h/2, 10,
+                                                            w/2, h/2, Math.max(w,h)/2);
                         grad.addColorStop(0, "#10141a");
                         grad.addColorStop(1, "#05070a");
                         ctx.fillStyle = grad;
@@ -255,7 +269,6 @@ Window {
                         var minAngle = ramGauge.minAngleDeg * Math.PI / 180.0;
                         var maxAngle = ramGauge.maxAngleDeg * Math.PI / 180.0;
 
-                        // ticks
                         ctx.save();
                         ctx.translate(cx, cy);
                         var totalTicks = 10;
@@ -275,25 +288,17 @@ Window {
                         }
                         ctx.restore();
 
-                        // base arc
                         ctx.strokeStyle = "#282d37";
                         ctx.lineWidth = 14;
                         ctx.beginPath();
                         ctx.arc(cx, cy, radius, minAngle, maxAngle, false);
                         ctx.stroke();
 
-                        // value arc
                         var frac = (ramGauge.displayedValue - ramGauge.minValue) /
                                    (ramGauge.maxValue - ramGauge.minValue);
                         if (frac < 0) frac = 0;
                         if (frac > 1) frac = 1;
                         var angle = minAngle + frac * (maxAngle - minAngle);
-
-                        var color = "#26c65b";
-                        if (frac > 0.7 && frac <= 0.9)
-                            color = "#ffb300";
-                        else if (frac > 0.9)
-                            color = "#ff5252";
 
                         ctx.strokeStyle = "#4caf50";
                         ctx.lineWidth = 14;
@@ -308,7 +313,8 @@ Window {
                         ctx.fillText("RAM", cx, cy - radius * 0.45);
 
                         ctx.font = "24px sans-serif";
-                        ctx.fillText(ramGauge.displayedValue.toFixed(0) + " %", cx, cy + radius * 0.1);
+                        ctx.fillText(ramGauge.displayedValue.toFixed(0) + " %",
+                                     cx, cy + radius * 0.1);
 
                         ctx.font = "12px sans-serif";
                         ctx.fillStyle = "#9098a6";
@@ -317,11 +323,8 @@ Window {
                 }
 
                 Item {
-                    id: ramNeedleContainer
                     anchors.fill: parent
-
                     transform: Rotation {
-                        id: ramNeedleRotation
                         origin.x: width / 2
                         origin.y: height * 0.6
                         angle: {
@@ -360,7 +363,6 @@ Window {
                 onWidthChanged: ramCanvas.requestPaint()
                 onHeightChanged: ramCanvas.requestPaint()
 
-                // "memory" warning
                 Rectangle {
                     width: 22
                     height: 10
@@ -390,13 +392,28 @@ Window {
                 property real value: logParser.temp
                 property real displayedValue: 0
                 property real minValue: 0
-                property real maxValue: 100       // assume 0–100°C
+                property real maxValue: 100
                 property real minAngleDeg: -210
                 property real maxAngleDeg: 30
 
-                Behavior on displayedValue {
-                    NumberAnimation { duration: 250; easing.type: Easing.InOutQuad }
+                property bool hovered: false
+                scale: hovered ? 1.1 : 1.0
+
+                Behavior on scale {
+                    NumberAnimation { duration: 80; easing.type: Easing.InOutQuad }
                 }
+
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onEntered: tempGauge.hovered = true
+                    onExited:  tempGauge.hovered = false
+                }
+
+                Behavior on displayedValue {
+                    NumberAnimation { duration: 80; easing.type: Easing.InOutQuad }
+                }
+
                 onValueChanged: displayedValue = value
 
                 Canvas {
@@ -410,7 +427,8 @@ Window {
                         var h = height;
                         ctx.reset();
 
-                        var grad = ctx.createRadialGradient(w/2, h/2, 10, w/2, h/2, Math.max(w,h)/2);
+                        var grad = ctx.createRadialGradient(w/2, h/2, 10,
+                                                            w/2, h/2, Math.max(w,h)/2);
                         grad.addColorStop(0, "#12151c");
                         grad.addColorStop(1, "#05070a");
                         ctx.fillStyle = grad;
@@ -423,7 +441,6 @@ Window {
                         var minAngle = tempGauge.minAngleDeg * Math.PI / 180.0;
                         var maxAngle = tempGauge.maxAngleDeg * Math.PI / 180.0;
 
-                        // ticks
                         ctx.save();
                         ctx.translate(cx, cy);
                         var totalTicks = 10;
@@ -443,14 +460,12 @@ Window {
                         }
                         ctx.restore();
 
-                        // base arc
                         ctx.strokeStyle = "#282d37";
                         ctx.lineWidth = 14;
                         ctx.beginPath();
                         ctx.arc(cx, cy, radius, minAngle, maxAngle, false);
                         ctx.stroke();
 
-                        // value arc
                         var frac = (tempGauge.displayedValue - tempGauge.minValue) /
                                    (tempGauge.maxValue - tempGauge.minValue);
                         if (frac < 0) frac = 0;
@@ -476,7 +491,8 @@ Window {
                         ctx.fillText("TEMP", cx, cy - radius * 0.45);
 
                         ctx.font = "24px sans-serif";
-                        ctx.fillText(tempGauge.displayedValue.toFixed(0) + " °C", cx, cy + radius * 0.1);
+                        ctx.fillText(tempGauge.displayedValue.toFixed(0) + " °C",
+                                     cx, cy + radius * 0.1);
 
                         ctx.font = "12px sans-serif";
                         ctx.fillStyle = "#9098a6";
@@ -485,11 +501,8 @@ Window {
                 }
 
                 Item {
-                    id: tempNeedleContainer
                     anchors.fill: parent
-
                     transform: Rotation {
-                        id: tempNeedleRotation
                         origin.x: width / 2
                         origin.y: height * 0.6
                         angle: {
@@ -528,7 +541,6 @@ Window {
                 onWidthChanged: tempCanvas.requestPaint()
                 onHeightChanged: tempCanvas.requestPaint()
 
-                // overheat light
                 Rectangle {
                     width: 24
                     height: 10
@@ -550,7 +562,7 @@ Window {
             }
         }
 
-        // ==== Bottom: scrolling history strip ====
+        // ===== BOTTOM: HISTORY GRAPH =====
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -592,7 +604,6 @@ Window {
                     if (n > maxPoints)
                         startIndex = n - maxPoints;
 
-                    // find max to scale Y
                     var maxVal = 100;
                     for (var i = startIndex; i < n; ++i) {
                         if (cpu[i] > maxVal) maxVal = cpu[i];
@@ -604,17 +615,15 @@ Window {
                     var plotW = w - 2 * pad;
                     var plotH = h - 2 * pad;
 
-                    // grid lines
+                    // grid
                     ctx.strokeStyle = "#242a36";
                     ctx.lineWidth = 1;
                     ctx.beginPath();
-                    // horizontal
                     for (var gy = 0; gy <= 4; ++gy) {
                         var yy = pad + gy * plotH / 4;
                         ctx.moveTo(pad, yy);
                         ctx.lineTo(w - pad, yy);
                     }
-                    // vertical
                     for (var gx = 0; gx <= 6; ++gx) {
                         var xx = pad + gx * plotW / 6;
                         ctx.moveTo(xx, pad);
@@ -645,9 +654,9 @@ Window {
                         ctx.stroke();
                     }
 
-                    drawSeries(cpu, "#ff5252"); // CPU line
-                    drawSeries(ram, "#4caf50"); // RAM line
-                    drawSeries(temp, "#42a5f5"); // TEMP line
+                    drawSeries(cpu,  "#ff5252");
+                    drawSeries(ram,  "#4caf50");
+                    drawSeries(temp, "#42a5f5");
 
                     // legend
                     ctx.font = "11px sans-serif";
@@ -676,7 +685,7 @@ Window {
         }
     }
 
-    // repaint history when backend history updates
+    // repaint history when C++ says history changed
     Connections {
         target: logParser
         function onHistoryChanged() {
@@ -684,16 +693,44 @@ Window {
         }
     }
 
-    // smooth continuous redraw loop for gauges + history
+    // small periodic refresh for smoothness
     Timer {
-        interval: 100  // 10 fps for nice motion without burning CPU
+        interval: 100
         running: true
         repeat: true
-        onTriggered: {
-            cpuCanvas.requestPaint();
-            ramCanvas.requestPaint();
-            tempCanvas.requestPaint();
-            historyCanvas.requestPaint();
+        onTriggered: historyCanvas.requestPaint()
+    }
+
+    // ===== SPLASH SCREEN =====
+    Rectangle {
+        id: splash
+        anchors.fill: parent
+        color: "black"
+        visible: true
+        opacity: 1.0
+        z: 999
+
+        Text {
+            anchors.centerIn: parent
+            text: "Telemetry Dashboard"
+            color: "#00ffcc"
+            font.pixelSize: 28
+        }
+
+        SequentialAnimation on opacity {
+            running: true
+            loops: 1
+
+            PauseAnimation { duration: 800 }
+
+            NumberAnimation {
+                from: 1.0
+                to: 0.0
+                duration: 1200
+                easing.type: Easing.InOutQuad
+            }
+
+            onStopped: splash.visible = false
         }
     }
 }

@@ -1,53 +1,59 @@
-#ifndef LOGPARSER_H
-#define LOGPARSER_H
+#pragma once
 
 #include <QObject>
-#include <QDateTime>
 #include <QVector>
-#include <QVariantList>
+#include <QVariant>
+#include <QString>
 
 class LogParser : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(double cpu READ cpu NOTIFY dataChanged)
-    Q_PROPERTY(double ram READ ram NOTIFY dataChanged)
-    Q_PROPERTY(double temp READ temp NOTIFY dataChanged)
+    Q_PROPERTY(double cpu  READ cpu  NOTIFY valuesChanged)
+    Q_PROPERTY(double ram  READ ram  NOTIFY valuesChanged)
+    Q_PROPERTY(double temp READ temp NOTIFY valuesChanged)
 
 public:
     explicit LogParser(QObject *parent = nullptr);
 
-    double cpu() const { return m_cpu; }
-    double ram() const { return m_ram; }
+    double cpu()  const { return m_cpu; }
+    double ram()  const { return m_ram; }
     double temp() const { return m_temp; }
 
+    // main.cpp uses this
+    void setLogFilePath(const QString &path) { m_logFilePath = path; }
+
+    // history for the graph
     Q_INVOKABLE QVariantList cpuHistory() const;
     Q_INVOKABLE QVariantList ramHistory() const;
     Q_INVOKABLE QVariantList tempHistory() const;
 
-    Q_INVOKABLE void setLogFilePath(const QString &path);
-
-signals:
-    void dataChanged();
-    void historyChanged();
-
-private slots:
+public slots:
     void updateFromLog();
 
-private:
-    void parseLogFile();
+signals:
+    void valuesChanged();    // CPU/RAM/TEMP updated
+    void historyChanged();   // history arrays updated
 
+private:
+    void pushHistory(double value,
+                     QVector<double> &hist,
+                     int maxSize);
+
+private:
     QString m_logFilePath;
 
-    double m_cpu = 0.0;
-    double m_ram = 0.0;
+    double m_cpu  = 0.0;
+    double m_ram  = 0.0;
     double m_temp = 0.0;
 
-    QVector<double> m_cpuHistory;
-    QVector<double> m_ramHistory;
-    QVector<double> m_tempHistory;
+    QVector<double> m_cpuHist;
+    QVector<double> m_ramHist;
+    QVector<double> m_tempHist;
 
-    QDateTime m_lastTimestamp; // last timestamp we processed
+    int m_maxHistory = 500;
+
+    // tailing state
+    qint64 m_lastPos   = 0;   // where we stopped reading last time
+    bool   m_initialized = false;
 };
-
-#endif // LOGPARSER_H

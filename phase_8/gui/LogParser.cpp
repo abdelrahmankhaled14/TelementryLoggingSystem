@@ -2,178 +2,151 @@
 
 #include <QFile>
 #include <QTextStream>
-#include <QRegularExpression>
 #include <QTimer>
-#include <QMap>
+#include <QRegularExpression>
 #include <QDebug>
 
 LogParser::LogParser(QObject *parent)
     : QObject(parent)
 {
-    // default: log file in current working directory
+    // default; main.cpp will override with setLogFilePath(...)
     m_logFilePath = QStringLiteral("telemetry.log");
 
     auto *timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, this, &LogParser::updateFromLog);
+    timer->setTimerType(Qt::PreciseTimer);
 
-    // Faster refresh for more "alive" gauges
-    timer->start(200); // 200 ms instead of 1000 ms
+    connect(timer, &QTimer::timeout,
+            this, &LogParser::updateFromLog);
+
+    // check very often – we'll only read new bytes
+    timer->start(10);   // 10 ms
 }
 
 QVariantList LogParser::cpuHistory() const
 {
-    QVariantList list;
-    list.reserve(m_cpuHistory.size());
-    for (double v : m_cpuHistory)
-        list.push_back(v);
-    return list;
+    QVariantList out;
+    out.reserve(m_cpuHist.size());
+    for (double v : m_cpuHist)
+        out.push_back(v);
+    return out;
 }
 
 QVariantList LogParser::ramHistory() const
 {
-    QVariantList list;
-    list.reserve(m_ramHistory.size());
-    for (double v : m_ramHistory)
-        list.push_back(v);
-    return list;
+    QVariantList out;
+    out.reserve(m_ramHist.size());
+    for (double v : m_ramHist)
+        out.push_back(v);
+    return out;
 }
 
 QVariantList LogParser::tempHistory() const
 {
-    QVariantList list;
-    list.reserve(m_tempHistory.size());
-    for (double v : m_tempHistory)
-        list.push_back(v);
-    return list;
+    QVariantList out;
+    out.reserve(m_tempHist.size());
+    for (double v : m_tempHist)
+        out.push_back(v);
+    return out;
 }
 
-void LogParser::setLogFilePath(const QString &path)
+void LogParser::pushHistory(double value,
+                            QVector<double> &hist,
+                            int maxSize)
 {
-    m_logFilePath = path;
-    // reset state so we re-read everything
-    m_lastTimestamp = QDateTime();
-    m_cpuHistory.clear();
-    m_ramHistory.clear();
-    m_tempHistory.clear();
+    hist.push_back(value);
+    if (hist.size() > maxSize)
+        hist.pop_front();
 }
 
 void LogParser::updateFromLog()
 {
-    parseLogFile();
-}
-
-void LogParser::parseLogFile()
-{
     QFile file(m_logFilePath);
-    if (!file.exists()) {
-        // no file yet, nothing to do
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        // qWarning() << "[LogParser] Cannot open log file" << m_logFilePath;
         return;
     }
 
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Unable to open log file" << m_logFilePath;
-        return;
+    // On first run, start from the beginning (replay whole file once)
+    // If you want to ignore old content and only follow new data,
+    // set m_lastPos = file.size() the first time instead.
+    if (!m_initialized) {
+        m_lastPos = 0;
+        m_initialized = true;
     }
+
+    // handle truncation/rotation
+    if (m_lastPos > file.size()) {
+        m_lastPos = 0;
+    }
+
+    // Jump to where we stopped last time
+    file.seek(m_lastPos);
 
     QTextStream in(&file);
+    in.setCodec("UTF-8");
 
-    // Example line:
-    // [2026-02-22 13:54:37] [INFO] TelemetryApp (CPU): CPU usage: 10%
-    // [2026-02-22 13:54:37] [INFO] TelemetryApp (RAM): RAM usage: 61%
-    // [2026-02-22 13:54:37] [INFO] TelemetryApp (TEMP): TEMP usage: 58°C
+    static QRegularExpression reCpu (R"(CPU usage:\s*(\d+)\s*%)");
+    static QRegularExpression reRam (R"(RAM usage:\s*(\d+)\s*%)");
+    static QRegularExpression reTemp(R"(TEMP usage:\s*(\d+))");
 
-    QRegularExpression re(
-        R"(\[(?<ts>[\d\-: ]+)\]\s+\[INFO\]\s+TelemetryApp\s+\((?<kind>CPU|RAM|TEMP)\):.*?(?<value>\d+))"
-    );
+    bool anyChanged = false;
 
-    struct Sample {
-        double cpu = -1.0;
-        double ram = -1.0;
-        double temp = -1.0;
-        QDateTime dt;
-    };
-
-    QMap<QString, Sample> samples; // key: timestamp string
-
+    // 🔥 VALUE-BY-VALUE PROCESSING
     while (!in.atEnd()) {
-        const QString line = in.readLine();
-        QRegularExpressionMatch m = re.match(line);
-        if (!m.hasMatch())
-            continue;
+        QString line = in.readLine();
+        m_lastPos = file.pos();   // remember how far we got
 
-        const QString tsStr = m.captured("ts");
-        const QString kind  = m.captured("kind");
-        const QString valStr = m.captured("value");
+        double oldCpu  = m_cpu;
+        double oldRam  = m_ram;
+        double oldTemp = m_temp;
 
-        bool ok = false;
-        double val = valStr.toDouble(&ok);
-        if (!ok)
-            continue;
+        bool localChange = false;
 
-        Sample sample = samples.value(tsStr);
-        if (!sample.dt.isValid()) {
-            sample.dt = QDateTime::fromString(tsStr, "yyyy-MM-dd HH:mm:ss");
+        if (line.contains("TelemetryApp (CPU):")) {
+            QRegularExpressionMatch m = reCpu.match(line);
+            if (m.hasMatch()) {
+                double v = m.captured(1).toDouble();
+                if (!qFuzzyCompare(1.0 + v, 1.0 + m_cpu)) {
+                    m_cpu = v;
+                    pushHistory(m_cpu, m_cpuHist, m_maxHistory);
+                    localChange = true;
+                }
+            }
+        } else if (line.contains("TelemetryApp (RAM):")) {
+            QRegularExpressionMatch m = reRam.match(line);
+            if (m.hasMatch()) {
+                double v = m.captured(1).toDouble();
+                if (!qFuzzyCompare(1.0 + v, 1.0 + m_ram)) {
+                    m_ram = v;
+                    pushHistory(m_ram, m_ramHist, m_maxHistory);
+                    localChange = true;
+                }
+            }
+        } else if (line.contains("TelemetryApp (TEMP):")) {
+            QRegularExpressionMatch m = reTemp.match(line);
+            if (m.hasMatch()) {
+                double v = m.captured(1).toDouble();
+                if (!qFuzzyCompare(1.0 + v, 1.0 + m_temp)) {
+                    m_temp = v;
+                    pushHistory(m_temp, m_tempHist, m_maxHistory);
+                    localChange = true;
+                }
+            }
         }
 
-        if (kind == QLatin1String("CPU"))
-            sample.cpu = val;
-        else if (kind == QLatin1String("RAM"))
-            sample.ram = val;
-        else if (kind == QLatin1String("TEMP"))
-            sample.temp = val;
+        if (localChange) {
+            anyChanged = true;
+            emit valuesChanged();
+            emit historyChanged();
 
-        samples.insert(tsStr, sample);
+            // optional debug:
+            // qDebug() << "[LogParser] line:" << line
+            //          << "CPU" << m_cpu << "RAM" << m_ram << "TEMP" << m_temp;
+        }
     }
 
     file.close();
 
-    bool updated = false;
-    bool historyUpdated = false;
-
-    // Process samples in chronological order
-    const auto keys = samples.keys();
-    for (const QString &tsStr : keys) {
-        const Sample &s = samples.value(tsStr);
-        if (!s.dt.isValid())
-            continue;
-
-        // require full triple (CPU, RAM, TEMP)
-        if (s.cpu < 0 || s.ram < 0 || s.temp < 0)
-            continue;
-
-        // skip ones we've already processed
-        if (m_lastTimestamp.isValid() && s.dt <= m_lastTimestamp)
-            continue;
-
-        m_lastTimestamp = s.dt;
-
-        m_cpu = s.cpu;
-        m_ram = s.ram;
-        m_temp = s.temp;
-        updated = true;
-
-        m_cpuHistory.push_back(m_cpu);
-        m_ramHistory.push_back(m_ram);
-        m_tempHistory.push_back(m_temp);
-        historyUpdated = true;
-    }
-
-    // Limit history size a bit so it doesn't grow forever
-    const int maxHistory = 500;
-    auto trim = [maxHistory](QVector<double> &v) {
-        if (v.size() > maxHistory) {
-            int toRemove = v.size() - maxHistory;
-            v.erase(v.begin(), v.begin() + toRemove);
-        }
-    };
-    if (historyUpdated) {
-        trim(m_cpuHistory);
-        trim(m_ramHistory);
-        trim(m_tempHistory);
-    }
-
-    if (updated)
-        emit dataChanged();
-    if (historyUpdated)
-        emit historyChanged();
+    // we already emitted per-value; nothing to do here
+    Q_UNUSED(anyChanged);
 }
