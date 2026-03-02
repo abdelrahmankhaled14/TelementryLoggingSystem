@@ -149,43 +149,7 @@ ApplicationWindow {
                     }
                 }
 
-                Item {
-                    anchors.fill: parent
-
-                    transform: Rotation {
-                        origin.x: width / 2
-                        origin.y: height * 0.6
-                        angle: {
-                            var frac = (cpuGauge.displayedValue - cpuGauge.minValue) /
-                                       (cpuGauge.maxValue - cpuGauge.minValue);
-                            if (frac < 0) frac = 0;
-                            if (frac > 1) frac = 1;
-                            return cpuGauge.minAngleDeg +
-                                   frac * (cpuGauge.maxAngleDeg - cpuGauge.minAngleDeg);
-                        }
-                    }
-
-                    Rectangle {
-                        width: 4
-                        height: Math.min(parent.width, parent.height) * 0.38
-                        radius: 2
-                        color: "#ff5252"
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        y: parent.height * 0.6 - height
-                        antialiasing: true
-                    }
-
-                    Rectangle {
-                        width: 14
-                        height: 14
-                        radius: 7
-                        color: "#11141b"
-                        border.color: "#ff5252"
-                        border.width: 2
-                        anchors.centerIn: parent
-                        y: parent.height * 0.6 - height/2
-                    }
-                }
+                // removed needle Item here
 
                 onDisplayedValueChanged: cpuCanvas.requestPaint()
                 onWidthChanged: cpuCanvas.requestPaint()
@@ -239,7 +203,10 @@ ApplicationWindow {
                 }
 
                 Behavior on displayedValue {
-                    NumberAnimation { duration: 80; easing.type: Easing.InOutQuad }
+                    NumberAnimation {
+                        duration: 80
+                        easing.type: Easing.InOutQuad
+                    }
                 }
 
                 onValueChanged: displayedValue = value
@@ -322,42 +289,7 @@ ApplicationWindow {
                     }
                 }
 
-                Item {
-                    anchors.fill: parent
-                    transform: Rotation {
-                        origin.x: width / 2
-                        origin.y: height * 0.6
-                        angle: {
-                            var frac = (ramGauge.displayedValue - ramGauge.minValue) /
-                                       (ramGauge.maxValue - ramGauge.minValue);
-                            if (frac < 0) frac = 0;
-                            if (frac > 1) frac = 1;
-                            return ramGauge.minAngleDeg +
-                                   frac * (ramGauge.maxAngleDeg - ramGauge.minAngleDeg);
-                        }
-                    }
-
-                    Rectangle {
-                        width: 4
-                        height: Math.min(parent.width, parent.height) * 0.38
-                        radius: 2
-                        color: "#4caf50"
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        y: parent.height * 0.6 - height
-                        antialiasing: true
-                    }
-
-                    Rectangle {
-                        width: 14
-                        height: 14
-                        radius: 7
-                        color: "#11141b"
-                        border.color: "#4caf50"
-                        border.width: 2
-                        anchors.centerIn: parent
-                        y: parent.height * 0.6 - height/2
-                    }
-                }
+                // removed needle Item here
 
                 onDisplayedValueChanged: ramCanvas.requestPaint()
                 onWidthChanged: ramCanvas.requestPaint()
@@ -411,7 +343,10 @@ ApplicationWindow {
                 }
 
                 Behavior on displayedValue {
-                    NumberAnimation { duration: 80; easing.type: Easing.InOutQuad }
+                    NumberAnimation {
+                        duration: 80
+                        easing.type: Easing.InOutQuad
+                    }
                 }
 
                 onValueChanged: displayedValue = value
@@ -500,42 +435,7 @@ ApplicationWindow {
                     }
                 }
 
-                Item {
-                    anchors.fill: parent
-                    transform: Rotation {
-                        origin.x: width / 2
-                        origin.y: height * 0.6
-                        angle: {
-                            var frac = (tempGauge.displayedValue - tempGauge.minValue) /
-                                       (tempGauge.maxValue - tempGauge.minValue);
-                            if (frac < 0) frac = 0;
-                            if (frac > 1) frac = 1;
-                            return tempGauge.minAngleDeg +
-                                   frac * (tempGauge.maxAngleDeg - tempGauge.minAngleDeg);
-                        }
-                    }
-
-                    Rectangle {
-                        width: 4
-                        height: Math.min(parent.width, parent.height) * 0.38
-                        radius: 2
-                        color: "#42a5f5"
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        y: parent.height * 0.6 - height
-                        antialiasing: true
-                    }
-
-                    Rectangle {
-                        width: 14
-                        height: 14
-                        radius: 7
-                        color: "#11141b"
-                        border.color: "#42a5f5"
-                        border.width: 2
-                        anchors.centerIn: parent
-                        y: parent.height * 0.6 - height/2
-                    }
-                }
+                // removed needle Item here
 
                 onDisplayedValueChanged: tempCanvas.requestPaint()
                 onWidthChanged: tempCanvas.requestPaint()
@@ -710,23 +610,36 @@ ApplicationWindow {
         opacity: 1.0
         z: 999
 
-        Text {
+        Column {
             anchors.centerIn: parent
-            text: "Telemetry Dashboard"
-            color: "#00ffcc"
-            font.pixelSize: 28
+            spacing: 8
+
+            Text {
+                text: "Abdelrahman Khaled"
+                color: "#00ffcc"
+                font.pixelSize: 30
+                font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Text {
+                text: "Embedded Systems – Intake 46 – ITI"
+                color: "#b3fff2"
+                font.pixelSize: 20
+                horizontalAlignment: Text.AlignHCenter
+            }
         }
 
         SequentialAnimation on opacity {
             running: true
             loops: 1
 
-            PauseAnimation { duration: 800 }
+            PauseAnimation { duration: 4000 }
 
             NumberAnimation {
                 from: 1.0
                 to: 0.0
-                duration: 1200
+                duration: 4000
                 easing.type: Easing.InOutQuad
             }
 
