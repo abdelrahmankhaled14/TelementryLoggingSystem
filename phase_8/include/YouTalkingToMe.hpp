@@ -14,9 +14,9 @@
 #include <atomic>
 #include <memory>
 
-class YourApplicationName {
+class YouTalkingToMe {
 public:
-    explicit YourApplicationName(const std::string& configPath);
+    explicit YouTalkingToMe(const std::string& configPath);
     void start();
 
 private:

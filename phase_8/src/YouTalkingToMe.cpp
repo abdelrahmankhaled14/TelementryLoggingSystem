@@ -7,7 +7,7 @@
 #include <chrono>
 #include <thread>
 
-YourApplicationName::YourApplicationName(const std::string& configPath)
+YouTalkingToMe::YouTalkingToMe(const std::string& configPath)
     : config(loadConfig(configPath)),                
       pool(3, 200),                               
       formattedQueue(200),                           
@@ -24,7 +24,7 @@ YourApplicationName::YourApplicationName(const std::string& configPath)
     setupLogger();                                  
 }
 
-void YourApplicationName::setupLogger()
+void YouTalkingToMe::setupLogger()
 {
     logmanagerbuilder builder(100);
 
@@ -44,7 +44,7 @@ void YourApplicationName::setupLogger()
     logger = builder.build();
 }
 
-void YourApplicationName::pushMeasurement(const std::string& policyName,
+void YouTalkingToMe::pushMeasurement(const std::string& policyName,
                                           const std::string& valueStr)
 {
     // Map "cpu"/"ram"/"temp" to the right LogFormatter<Policy>
@@ -70,7 +70,7 @@ void YourApplicationName::pushMeasurement(const std::string& policyName,
     }
 }
 
-void YourApplicationName::runConsumer()
+void YouTalkingToMe::runConsumer()
 {
     std::cout << "[LOGGER] Consumer thread started\n";
 
@@ -105,7 +105,7 @@ void YourApplicationName::runConsumer()
     consumerDone.store(true, std::memory_order_release);
 }
 
-void YourApplicationName::runProducer()
+void YouTalkingToMe::runProducer()
 {
     std::cout << "[FORMATTER] Producer thread started\n";
 
@@ -177,7 +177,7 @@ void YourApplicationName::runProducer()
               << iteration << " iterations\n";
 }
 
-void YourApplicationName::start()
+void YouTalkingToMe::start()
 {
     std::cout << "\n========================================\n"
               << "Telemetry logging app started\n"

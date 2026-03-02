@@ -5,7 +5,7 @@
 int main()
 {
     try {
-        YourApplicationName app("config.json");
+        YouTalkingToMe app("config.json");
         app.start();
     } catch (const std::exception& ex) {
         std::cerr << "Fatal error: " << ex.what() << "\n";
