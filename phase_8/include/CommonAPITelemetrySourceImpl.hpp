@@ -4,22 +4,23 @@
 #include <mutex>
 #include <string>
 #include <CommonAPI/CommonAPI.hpp>
-#include "ITelemetrySource.hpp"
+
+#include "ITelemetrySource.hpp"   
 
 #include "v1/v1/logger/methods/loggingProxy.hpp"
 #include "v1/v1/logger/methods/TelemetryTypes.hpp"
 
-class CommonAPITelemetrySourceImpl {
+class CommonAPITelemetrySourceImpl : public ITelemetrySource {
 public:
     static CommonAPITelemetrySourceImpl& getInstance();
 
-    bool OpenSource();
-
-    bool ReadSource(std::string &out);
+    
+    bool OpenSource() override;
+    bool ReadSource(std::string &out) override;
 
 private:
     CommonAPITelemetrySourceImpl() = default;
-    ~CommonAPITelemetrySourceImpl() = default;
+    ~CommonAPITelemetrySourceImpl() override = default;
 
     CommonAPITelemetrySourceImpl(const CommonAPITelemetrySourceImpl&) = delete;
     CommonAPITelemetrySourceImpl& operator=(const CommonAPITelemetrySourceImpl&) = delete;

@@ -32,7 +32,7 @@ private:
     filesink tempFileSink;
     LogManager logger;
 
-    CommonAPITelemetrySourceImpl& source;
+    ITelemetrySource& source;
 
     void setupLogger();
     void runConsumer();
