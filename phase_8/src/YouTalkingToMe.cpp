@@ -1,4 +1,3 @@
-// YourApplicationName.cpp
 #include "YouTalkingToMe.hpp"
 #include "config.hpp"
 
@@ -47,7 +46,7 @@ void YouTalkingToMe::setupLogger()
 void YouTalkingToMe::pushMeasurement(const std::string& policyName,
                                           const std::string& valueStr)
 {
-    // Map "cpu"/"ram"/"temp" to the right LogFormatter<Policy>
+    
     std::optional<logmessage> msg;
 
     if (policyName == "cpu") {
@@ -57,7 +56,7 @@ void YouTalkingToMe::pushMeasurement(const std::string& policyName,
     } else if (policyName == "temp") {
         msg = LogFormatter<TempPolicy>::formatDataToLogMsg(valueStr);
     } else {
-        // Unknown policy, ignore
+        
         return;
     }
 
@@ -90,7 +89,6 @@ void YouTalkingToMe::runConsumer()
             }
         } else {
             if (done.load(std::memory_order_acquire)) {
-                // Drain remaining
                 while (auto last = formattedQueue.tryPop()) {
                     logger.log(*last);
                 }
@@ -112,8 +110,7 @@ void YouTalkingToMe::runProducer()
     int iteration = 0;
     std::string raw;
 
-    // Open source — for now we assume CommonAPI SOME/IP,
-    // for file/socket you can plug another implementation.
+
     std::cout << "[CLIENT] Initializing telemetry source (" << config.sourceType << ")...\n";
     if (!source.OpenSource()) {
         std::cerr << "[CLIENT] Failed to open telemetry source\n"
@@ -142,20 +139,20 @@ void YouTalkingToMe::runProducer()
 
             int values[3] = {v0, v1, v2};
 
-            // if mapping missing or invalid, fall back to fixed cpu,temp,ram
+            
             if (config.mapping.size() == 3) {
                 for (int i = 0; i < 3; ++i) {
                     pushMeasurement(config.mapping[i],
                                     std::to_string(values[i]));
                 }
             } else {
-                // fallback compatible with your old main
+               
                 pushMeasurement("cpu",  std::to_string(v0));
                 pushMeasurement("temp", std::to_string(v1));
                 pushMeasurement("ram",  std::to_string(v2));
             }
         } else {
-            // file/socket: single value → use config.policy
+           
             int value = 0;
             {
                 std::stringstream ss(raw);
@@ -183,17 +180,14 @@ void YouTalkingToMe::start()
               << "Telemetry logging app started\n"
               << "========================================\n\n";
 
-    // Consumer
     pool.addTask([this] {
         runConsumer();
     });
 
-    // Producer
     pool.addTask([this] {
         runProducer();
     });
 
-    // Wait
     while (!consumerDone.load(std::memory_order_acquire)) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }

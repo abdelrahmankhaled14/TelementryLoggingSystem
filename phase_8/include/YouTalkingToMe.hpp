@@ -1,4 +1,3 @@
-// YourApplicationName.hpp
 #pragma once
 
 #include "config.hpp"
@@ -22,23 +21,19 @@ public:
 private:
     AppConfig config;
 
-    // Core infra
     ThreadPool pool;
     RingBuffer<logmessage> formattedQueue;
     std::atomic<bool> done{false};
     std::atomic<bool> consumerDone{false};
 
-    // Sinks
     consolesink consoleSink;
     filesink cpuFileSink;
     filesink ramFileSink;
     filesink tempFileSink;
     LogManager logger;
 
-    // Source (for now: only CommonAPI SOME/IP, you can extend later)
     CommonAPITelemetrySourceImpl& source;
 
-    // helpers
     void setupLogger();
     void runConsumer();
     void runProducer();

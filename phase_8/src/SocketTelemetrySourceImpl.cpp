@@ -17,13 +17,6 @@ bool SocketTelemetrySourceImpl::OpenSource()
 
 bool SocketTelemetrySourceImpl::ReadSource(std::string &out)
 {
-    /*
-    TODO: 1. Check if socket_ exists and is open
-    TODO: 2. Create buffer (e.g., char buffer[4096])
-    TODO: 3. Call socket_->read(buffer, size)
-    TODO: 4. Assign to out with proper byte count
-    TODO: 5. Return success/failure
-    */
     if (socket_ && socket_->isOpen())
     {
         char buffer[4096];

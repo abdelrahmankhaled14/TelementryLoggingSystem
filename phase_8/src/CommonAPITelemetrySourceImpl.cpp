@@ -5,17 +5,13 @@
 
 using namespace v1::v1::logger::methods;
 
-// =======================================================
-//  Singleton instance
-// =======================================================
+
 CommonAPITelemetrySourceImpl& CommonAPITelemetrySourceImpl::getInstance() {
     static CommonAPITelemetrySourceImpl instance;
     return instance;
 }
 
-// =======================================================
-//  Open CommonAPI proxy
-// =======================================================
+
 bool CommonAPITelemetrySourceImpl::OpenSource() {
     std::lock_guard<std::mutex> lock(mtx_);
 
@@ -30,7 +26,6 @@ bool CommonAPITelemetrySourceImpl::OpenSource() {
         return false;
     }
 
-    // Domain / instance must match your .fdepl + server
     proxy_ = runtime_->buildProxy<loggingProxy>(
         "local",
         "logger.methods.justSendHi"
@@ -46,16 +41,7 @@ bool CommonAPITelemetrySourceImpl::OpenSource() {
     return true;
 }
 
-// =======================================================
-//  Request telemetry snapshot (synchronous)
-//  Server sends:
-//    - coreLoads  = total CPU usage as *string* (e.g. "37")
-//    - ramUsagePercentage = RAM usage in %
-//    - temperatureC       = °C
-//
-//  We return single line:
-//    "cpu;ram;temp"
-// =======================================================
+
 bool CommonAPITelemetrySourceImpl::ReadSource(std::string &out) {
     if (!ready_) {
         std::cerr << "[CLIENT] Source not opened yet!\n";
@@ -65,7 +51,6 @@ bool CommonAPITelemetrySourceImpl::ReadSource(std::string &out) {
     TelemetryTypes::TelemetrySnapshot snap;
     CommonAPI::CallStatus callStatus;
 
-    // Synchronous call into server
     proxy_->requestData(callStatus, snap);
 
     if (callStatus != CommonAPI::CallStatus::SUCCESS) {
@@ -74,11 +59,10 @@ bool CommonAPITelemetrySourceImpl::ReadSource(std::string &out) {
         return false;
     }
 
-    const std::string totalCpuStr = snap.getCoreLoads();       // already avg on server
+    const std::string totalCpuStr = snap.getCoreLoads();       
     const uint32_t ramPercent     = snap.getRamUsagePercentage();
     const uint16_t tempC          = snap.getTemperatureC();
 
-    // cpu;ram;temp
     out = totalCpuStr + ";" +
           std::to_string(ramPercent) + ";" +
           std::to_string(tempC);

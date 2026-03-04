@@ -13,7 +13,6 @@ private:
 public:
     explicit SocketTelemetrySourceImpl(const std::string& socketPath);
     
-    // Implements ITelemetrySource interface
     bool OpenSource() override;
     bool ReadSource(std::string& out) override;
 };

@@ -26,12 +26,7 @@ SafeSocket::SafeSocket(SafeSocket &&other) noexcept
 
 SafeSocket &SafeSocket::operator=(SafeSocket &&other) noexcept
 {
-    /*
-    TODO: Close current fd_ if valid
-    TODO: Steal from other
-    TODO: Invalidate other
-    TODO: Return *this
-    */
+
     if (this != &other)
     {
         if (fd_ != -1)
